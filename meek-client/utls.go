@@ -264,15 +264,33 @@ var clientHelloIDMap = map[string]*utls.ClientHelloID{
 	"hellofirefox_56":       &utls.HelloFirefox_56,
 	"hellofirefox_63":       &utls.HelloFirefox_63,
 	"hellofirefox_65":       &utls.HelloFirefox_65,
+	"hellofirefox_99":       &utls.HelloFirefox_99,
+	"hellofirefox_102":      &utls.HelloFirefox_102,
+	"hellofirefox_105":      &utls.HelloFirefox_105,
 	"hellochrome_auto":      &utls.HelloChrome_Auto,
 	"hellochrome_58":        &utls.HelloChrome_58,
 	"hellochrome_62":        &utls.HelloChrome_62,
 	"hellochrome_70":        &utls.HelloChrome_70,
 	"hellochrome_72":        &utls.HelloChrome_72,
 	"hellochrome_83":        &utls.HelloChrome_83,
+	"hellochrome_87":        &utls.HelloChrome_87,
+	"hellochrome_96":        &utls.HelloChrome_96,
+	"hellochrome_100":       &utls.HelloChrome_100,
+	"hellochrome_102":       &utls.HelloChrome_102,
 	"helloios_auto":         &utls.HelloIOS_Auto,
 	"helloios_11_1":         &utls.HelloIOS_11_1,
 	"helloios_12_1":         &utls.HelloIOS_12_1,
+	"helloios_13":           &utls.HelloIOS_13,
+	"helloios_14":           &utls.HelloIOS_14,
+	"helloedge_85":          &utls.HelloEdge_85,
+	"hellosafari_16_0":      &utls.HelloSafari_16_0,
+	"hello360_7_5":          &utls.Hello360_7_5,
+	"helloqq_11_1":          &utls.HelloQQ_11_1,
+	// omitting utls.HelloEdge_106
+	// omitting utls.Hello360_11_0
+	//   https://github.com/refraction-networking/utls/pull/122#issue-1401840671
+	//   "the specs based on Edge 106 and 360 11.0 seem to be incompatible with this library"
+	// omitting utls.HelloAndroid_11_OkHttp
 }
 
 func NewUTLSRoundTripper(name string, cfg *utls.Config, proxyURL *url.URL) (http.RoundTripper, error) {

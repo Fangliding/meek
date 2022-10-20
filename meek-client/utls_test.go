@@ -138,9 +138,6 @@ func TestUTLSClientHello(t *testing.T) {
 func TestUTLSServerName(t *testing.T) {
 	const clientHelloIDName = "HelloFirefox_63"
 
-	// No ServerName, dial IP address. Results in an invalid server_name
-	// extension with a 0-length host_name. Not sure if that's what it
-	// should do, but check if the behavior ever changes.
 	rt, err := NewUTLSRoundTripper(clientHelloIDName, &utls.Config{InsecureSkipVerify: true}, nil)
 	if err != nil {
 		panic(err)
@@ -149,8 +146,11 @@ func TestUTLSServerName(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	if !bytes.Contains(buf, []byte("\x00\x00\x00\x05\x00\x03\x00\x00\x00")) {
-		t.Errorf("expected 0-length server_name extension with no ServerName and IP address dial")
+	// Check that Compression Methods (length 0x01, contents 0x00) and the
+	// length field (0x18f) go right into the extended_master_secret
+	// extension (0x0017) without a server_name extension.
+	if !bytes.Contains(buf, []byte("\x01\x00\x01\x8f\x00\x17\x00\x00")) {
+		t.Errorf("expected no server_name extension with no ServerName and IP address dial")
 	}
 
 	// No ServerName, dial hostname. server_name extension should come from
