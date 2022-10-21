@@ -1,3 +1,4 @@
+//go:build !windows
 // +build !windows
 
 // Process termination code for platforms that have SIGTERM (i.e., not Windows).

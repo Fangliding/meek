@@ -3,14 +3,19 @@
 // data to a local OR port.
 //
 // Sample usage in torrc:
-// 	ServerTransportListenAddr meek 0.0.0.0:443
-// 	ServerTransportPlugin meek exec ./meek-server --acme-hostnames meek-server.example --acme-email admin@meek-server.example --log meek-server.log
+//
+//	ServerTransportListenAddr meek 0.0.0.0:443
+//	ServerTransportPlugin meek exec ./meek-server --acme-hostnames meek-server.example --acme-email admin@meek-server.example --log meek-server.log
+//
 // Using your own TLS certificate:
-// 	ServerTransportListenAddr meek 0.0.0.0:8443
-// 	ServerTransportPlugin meek exec ./meek-server --cert cert.pem --key key.pem --log meek-server.log
+//
+//	ServerTransportListenAddr meek 0.0.0.0:8443
+//	ServerTransportPlugin meek exec ./meek-server --cert cert.pem --key key.pem --log meek-server.log
+//
 // Plain HTTP usage:
-// 	ServerTransportListenAddr meek 0.0.0.0:8080
-// 	ServerTransportPlugin meek exec ./meek-server --disable-tls --log meek-server.log
+//
+//	ServerTransportListenAddr meek 0.0.0.0:8080
+//	ServerTransportPlugin meek exec ./meek-server --disable-tls --log meek-server.log
 //
 // The server runs in HTTPS mode by default, getting certificates from Let's
 // Encrypt automatically. The server opens an auxiliary ACME listener on port 80
