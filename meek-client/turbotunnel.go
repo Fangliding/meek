@@ -53,9 +53,6 @@ const (
 // along with all HTTP requests, and the server uses the ClientID to
 // disambiguate requests among its many clients. ClientID implements the
 // net.Addr interface.
-//
-// ClientID duplicates the functionality of the QUIC connection ID, but quic-go
-// does not provide accessors for the connection ID.
 type ClientID [8]byte
 
 func newClientID() ClientID {
