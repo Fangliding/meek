@@ -24,7 +24,7 @@ import (
 
 const (
 	// The size of receive and send queues.
-	queueSize = 32
+	queueSize = 256
 
 	// The size of the largest bundle of packets we will send in a poll.
 	// (Actually it's not quite a maximum, we will quit bundling as soon as
