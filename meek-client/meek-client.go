@@ -195,10 +195,13 @@ func handleSOCKS(socks *pt.SocksConn) error {
 		0, // default resend
 		1, // nc=1 => congestion window off
 	)
+	conn.SetWindowSize(1024, 1024) // default is 32, 32
 
 	smuxConfig := smux.DefaultConfig()
 	smuxConfig.Version = 2
 	smuxConfig.KeepAliveTimeout = smuxIdleTimeout
+	smuxConfig.MaxReceiveBuffer = 4 * 1024 * 1024 // default is 4 * 1024 * 1024
+	smuxConfig.MaxStreamBuffer = 1 * 1024 * 1024  // default is 65536
 	sess, err := smux.Client(conn, smuxConfig)
 	if err != nil {
 		return err

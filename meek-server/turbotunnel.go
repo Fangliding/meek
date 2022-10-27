@@ -17,7 +17,7 @@ import (
 )
 
 // The size of receive and send queues.
-const queueSize = 32
+const queueSize = 256
 
 // ClientID plays the role in QueuePacketConn that an (IP address, port) tuple
 // plays in a net.UDPConn. It is a persistent identifier that binds together all
