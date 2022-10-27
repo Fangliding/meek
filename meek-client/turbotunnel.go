@@ -10,8 +10,6 @@ package main
 
 import (
 	"bytes"
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"io"
 	"net"
@@ -20,6 +18,7 @@ import (
 	"time"
 
 	"git.torproject.org/pluggable-transports/meek.git/common/encapsulation"
+	"git.torproject.org/pluggable-transports/meek.git/common/turbotunnel"
 )
 
 const (
@@ -47,26 +46,6 @@ const (
 	pollDelayMultiplier = 2.0
 )
 
-// ClientID plays the role in PollingPacketConn that an (IP address, port) tuple
-// plays in a net.UDPConn. It is a persistent identifier that binds together all
-// the HTTP transactions that occur as part of a session. The ClientID is sent
-// along with all HTTP requests, and the server uses the ClientID to
-// disambiguate requests among its many clients. ClientID implements the
-// net.Addr interface.
-type ClientID [8]byte
-
-func newClientID() ClientID {
-	var id ClientID
-	_, err := rand.Read(id[:])
-	if err != nil {
-		panic(err)
-	}
-	return id
-}
-
-func (id ClientID) Network() string { return "clientid" }
-func (id ClientID) String() string  { return hex.EncodeToString(id[:]) }
-
 // Poller is an abstract interface over an operation that writes a stream of
 // bytes and reads a stream of bytes in return, like an HTTP request.
 type Poller interface {
@@ -84,7 +63,7 @@ type Poller interface {
 // HTTP response body). The Poller can apply HTTP request customizations such as
 // domain fronting.
 type PollingPacketConn struct {
-	clientID   ClientID
+	clientID   turbotunnel.ClientID
 	remoteAddr net.Addr
 	poller     Poller
 	recvQueue  chan []byte
@@ -105,7 +84,7 @@ type PollingPacketConn struct {
 // effective remote address.
 func NewPollingPacketConn(remoteAddr net.Addr, poller Poller) *PollingPacketConn {
 	c := &PollingPacketConn{
-		clientID:   newClientID(),
+		clientID:   turbotunnel.NewClientID(),
 		remoteAddr: remoteAddr,
 		poller:     poller,
 		recvQueue:  make(chan []byte, queueSize),

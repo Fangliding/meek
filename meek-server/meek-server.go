@@ -40,6 +40,7 @@ import (
 
 	"git.torproject.org/pluggable-transports/goptlib.git"
 	"git.torproject.org/pluggable-transports/meek.git/common/encapsulation"
+	"git.torproject.org/pluggable-transports/meek.git/common/turbotunnel"
 	"github.com/xtaci/kcp-go/v5"
 	"github.com/xtaci/smux"
 	"golang.org/x/crypto/acme/autocert"
@@ -80,11 +81,11 @@ func httpInternalServerError(w http.ResponseWriter) {
 // listener, so there is just one global state. State also serves as the http
 // Handler.
 type State struct {
-	conn *QueuePacketConn
+	conn *turbotunnel.QueuePacketConn
 }
 
 func NewState(localAddr net.Addr) (*State, error) {
-	pconn := NewQueuePacketConn(localAddr, smuxIdleTimeout)
+	pconn := turbotunnel.NewQueuePacketConn(localAddr, smuxIdleTimeout)
 
 	ln, err := kcp.ServeConn(nil, 0, 0, pconn)
 	if err != nil {
@@ -147,7 +148,7 @@ func (state *State) Post(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 	body := http.MaxBytesReader(w, req.Body, maxPayloadLength+1)
 
-	var clientID ClientID
+	var clientID turbotunnel.ClientID
 	_, err := io.ReadFull(body, clientID[:])
 	if err != nil {
 		// The request body didn't even contain enough bytes for the

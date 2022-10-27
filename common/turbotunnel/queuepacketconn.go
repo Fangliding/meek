@@ -1,43 +1,11 @@
-// The code in this file provides a compatibility layer between an underlying
-// packet-based connection and our polling-based domain-fronted HTTP carrier.
-// The main interface is QueuePacketConn, which stores packets in buffered
-// channels instead of sending/receiving them on some concrete network
-// interface. Callers can inspect these channels.
-
-package main
+package turbotunnel
 
 import (
-	"crypto/rand"
-	"encoding/hex"
-	"errors"
 	"net"
 	"sync"
 	"sync/atomic"
 	"time"
 )
-
-// The size of receive and send queues.
-const queueSize = 256
-
-// ClientID plays the role in QueuePacketConn that an (IP address, port) tuple
-// plays in a net.UDPConn. It is a persistent identifier that binds together all
-// the HTTP transactions that occur as part of a session. The ClientID is sent
-// along with all HTTP requests, and the server uses the ClientID to
-// disambiguate requests among its many clients. ClientID implements the
-// net.Addr interface.
-type ClientID [8]byte
-
-func newClientID() ClientID {
-	var id ClientID
-	_, err := rand.Read(id[:])
-	if err != nil {
-		panic(err)
-	}
-	return id
-}
-
-func (id ClientID) Network() string { return "clientid" }
-func (id ClientID) String() string  { return hex.EncodeToString(id[:]) }
 
 // taggedPacket is a combination of a []byte and a net.Addr, encapsulating the
 // return type of PacketConn.ReadFrom.
@@ -48,9 +16,9 @@ type taggedPacket struct {
 
 // QueuePacketConn implements net.PacketConn by storing queues of packets. There
 // is one incoming queue (where packets are additionally tagged by the source
-// address of the client that sent them). There are many outgoing queues, one
-// for each client address that has been recently seen. The QueueIncoming method
-// inserts a packet into the incoming queue, to eventually be returned by
+// address of the peer that sent them). There are many outgoing queues, one for
+// each remote peer address that has been recently seen. The QueueIncoming
+// method inserts a packet into the incoming queue, to eventually be returned by
 // ReadFrom. WriteTo inserts a packet into an address-specific outgoing queue,
 // which can later by accessed through the OutgoingQueue method.
 type QueuePacketConn struct {
@@ -63,8 +31,8 @@ type QueuePacketConn struct {
 	err atomic.Value
 }
 
-// NewQueuePacketConn makes a new QueuePacketConn, set to track recent clients
-// for at least a duration of timeout.
+// NewQueuePacketConn makes a new QueuePacketConn, set to track recent peers for
+// at least a duration of timeout.
 func NewQueuePacketConn(localAddr net.Addr, timeout time.Duration) *QueuePacketConn {
 	return &QueuePacketConn{
 		clients:   NewClientMap(timeout),
@@ -99,9 +67,6 @@ func (c *QueuePacketConn) QueueIncoming(p []byte, addr net.Addr) {
 func (c *QueuePacketConn) OutgoingQueue(addr net.Addr) <-chan []byte {
 	return c.clients.SendQueue(addr)
 }
-
-var errClosedPacketConn = errors.New("operation on closed connection")
-var errNotImplemented = errors.New("not implemented")
 
 // ReadFrom returns a packet and address previously stored by QueueIncoming.
 func (c *QueuePacketConn) ReadFrom(p []byte) (int, net.Addr, error) {
