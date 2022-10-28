@@ -27,6 +27,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -97,13 +98,14 @@ type RequestInfo struct {
 	RoundTripper http.RoundTripper
 }
 
-func (info *RequestInfo) Poll(out io.Reader) (in io.ReadCloser, err error) {
+func (info *RequestInfo) Poll(ctx context.Context, out io.Reader) (in io.ReadCloser, err error) {
 	req, err := http.NewRequest("POST", info.URL.String(), out)
 	// Prevent Content-Type sniffing by net/http and middleboxes.
 	req.Header.Set("Content-Type", "application/octet-stream")
 	if err != nil {
 		return nil, err
 	}
+	req = req.WithContext(ctx)
 	if info.Host != "" {
 		req.Host = info.Host
 	}

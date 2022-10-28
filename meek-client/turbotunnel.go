@@ -40,7 +40,7 @@ const (
 // Poller is an abstract interface over an operation that writes a stream of
 // bytes and reads a stream of bytes in return, like an HTTP request.
 type Poller interface {
-	Poll(out io.Reader) (in io.ReadCloser, err error)
+	Poll(ctx context.Context, out io.Reader) (in io.ReadCloser, err error)
 }
 
 // PollingPacketConn implements the net.PacketConn interface over a carrier of
@@ -173,7 +173,7 @@ func (c *PollingPacketConn) requestLoop() {
 		}
 
 		go func() {
-			resp, err := c.poller.Poll(&body)
+			resp, err := c.poller.Poll(c.ctx, &body)
 			if err != nil {
 				c.Close()
 				return
