@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 // Process termination code for platforms that don't have SIGTERM (i.e.,

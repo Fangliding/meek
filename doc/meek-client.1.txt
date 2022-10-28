@@ -57,15 +57,33 @@ The possible values of __CLIENTHELLOID__ are:
 - HelloFirefox_56
 - HelloFirefox_63
 - HelloFirefox_65
-- HelloFirefox_Auto
+- HelloFirefox_99
+- HelloFirefox_102
+- HelloFirefox_105
+- HelloFirefox_Auto = HelloFirefox_105
 - HelloChrome_58
 - HelloChrome_62
 - HelloChrome_70
 - HelloChrome_72
-- HelloChrome_Auto
+- HelloChrome_83
+- HelloChrome_87
+- HelloChrome_96
+- HelloChrome_100
+- HelloChrome_102
+- HelloChrome_Auto = HelloChrome_102
 - HelloIOS_11_1
 - HelloIOS_12_1
-- HelloIOS_Auto
+- HelloIOS_13
+- HelloIOS_14
+- HelloIOS_Auto = HelloIOS_14
+- HelloEdge_85
+- HelloEdge_Auto = HelloEdge_85
+- HelloSafari_16_0
+- HelloSafari_Auto = HelloSafari_16_0
+- Hello360_7_5
+- Hello360_Auto = Hello360_7_5
+- HelloQQ_11_1
+- HelloQQ_Auto = HelloQQ_11_1
 
 As a special case, the values "none" and "HelloGolang"
 are recognized as aliases for

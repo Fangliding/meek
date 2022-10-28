@@ -39,7 +39,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"reflect"
 	"strings"
 	"sync"
 
@@ -47,25 +46,6 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/proxy"
 )
-
-// Copy the public fields (fields for which CanSet is true) from src to dst.
-// src and dst must be pointers to the same type. We use this to make copies of
-// httpRoundTripper. We cannot use struct assignment, because http.Transport
-// contains private mutexes. The idea of using reflection to copy only the
-// public fields comes from a post by Nick Craig-Wood:
-// https://groups.google.com/d/msg/Golang-Nuts/SDiGYNVE8iY/89hRKTF4BAAJ
-func copyPublicFields(dst, src interface{}) {
-	if reflect.TypeOf(dst) != reflect.TypeOf(src) {
-		panic("unequal types")
-	}
-	dstValue := reflect.ValueOf(dst).Elem()
-	srcValue := reflect.ValueOf(src).Elem()
-	for i := 0; i < dstValue.NumField(); i++ {
-		if dstValue.Field(i).CanSet() {
-			dstValue.Field(i).Set(srcValue.Field(i))
-		}
-	}
-}
 
 // Extract a host:port address from a URL, suitable for passing to net.Dial.
 func addrForDial(url *url.URL) (string, error) {
@@ -114,11 +94,10 @@ func dialUTLS(network, addr string, cfg *utls.Config, clientHelloID *utls.Client
 //
 // Can only be reused among servers which negotiate the same ALPN.
 type UTLSRoundTripper struct {
-	sync.Mutex
-
 	clientHelloID *utls.ClientHelloID
 	config        *utls.Config
 	proxyDialer   proxy.Dialer
+	rtLock        sync.Mutex
 	rt            http.RoundTripper
 
 	// Transport for HTTP requests, which don't use uTLS.
@@ -135,18 +114,18 @@ func (rt *UTLSRoundTripper) RoundTrip(req *http.Request) (*http.Response, error)
 		return nil, fmt.Errorf("unsupported URL scheme %q", req.URL.Scheme)
 	}
 
-	rt.Lock()
-	defer rt.Unlock()
-
+	var err error
+	rt.rtLock.Lock()
 	if rt.rt == nil {
 		// On the first call, make an http.Transport or http2.Transport
 		// as appropriate.
-		var err error
 		rt.rt, err = makeRoundTripper(req.URL, rt.clientHelloID, rt.config, rt.proxyDialer)
-		if err != nil {
-			return nil, err
-		}
 	}
+	rt.rtLock.Unlock()
+	if err != nil {
+		return nil, err
+	}
+
 	// Forward the request to the internal http.Transport or http2.Transport.
 	return rt.rt.RoundTrip(req)
 }
@@ -264,15 +243,15 @@ func makeRoundTripper(url *url.URL, clientHelloID *utls.ClientHelloID, cfg *utls
 	default:
 		// With http.Transport, copy important default fields from
 		// http.DefaultTransport, such as TLSHandshakeTimeout and
-		// IdleConnTimeout.
-		tr := &http.Transport{}
-		copyPublicFields(tr, httpRoundTripper)
+		// IdleConnTimeout, before overriding DialTLS.
+		tr := httpRoundTripper.Clone()
 		tr.DialTLS = dialTLS
 		return tr, nil
 	}
 }
 
 // When you update this map, also update the man page in doc/meek-client.1.txt.
+// https://github.com/refraction-networking/utls/blob/master/u_common.go
 var clientHelloIDMap = map[string]*utls.ClientHelloID{
 	// No HelloCustom: not useful for external configuration.
 	// No HelloRandomized: doesn't negotiate consistent ALPN.
@@ -284,12 +263,34 @@ var clientHelloIDMap = map[string]*utls.ClientHelloID{
 	"hellofirefox_55":       &utls.HelloFirefox_55,
 	"hellofirefox_56":       &utls.HelloFirefox_56,
 	"hellofirefox_63":       &utls.HelloFirefox_63,
+	"hellofirefox_65":       &utls.HelloFirefox_65,
+	"hellofirefox_99":       &utls.HelloFirefox_99,
+	"hellofirefox_102":      &utls.HelloFirefox_102,
+	"hellofirefox_105":      &utls.HelloFirefox_105,
 	"hellochrome_auto":      &utls.HelloChrome_Auto,
 	"hellochrome_58":        &utls.HelloChrome_58,
 	"hellochrome_62":        &utls.HelloChrome_62,
 	"hellochrome_70":        &utls.HelloChrome_70,
+	"hellochrome_72":        &utls.HelloChrome_72,
+	"hellochrome_83":        &utls.HelloChrome_83,
+	"hellochrome_87":        &utls.HelloChrome_87,
+	"hellochrome_96":        &utls.HelloChrome_96,
+	"hellochrome_100":       &utls.HelloChrome_100,
+	"hellochrome_102":       &utls.HelloChrome_102,
 	"helloios_auto":         &utls.HelloIOS_Auto,
 	"helloios_11_1":         &utls.HelloIOS_11_1,
+	"helloios_12_1":         &utls.HelloIOS_12_1,
+	"helloios_13":           &utls.HelloIOS_13,
+	"helloios_14":           &utls.HelloIOS_14,
+	"helloedge_85":          &utls.HelloEdge_85,
+	"hellosafari_16_0":      &utls.HelloSafari_16_0,
+	"hello360_7_5":          &utls.Hello360_7_5,
+	"helloqq_11_1":          &utls.HelloQQ_11_1,
+	// omitting utls.HelloEdge_106
+	// omitting utls.Hello360_11_0
+	//   https://github.com/refraction-networking/utls/pull/122#issue-1401840671
+	//   "the specs based on Edge 106 and 360 11.0 seem to be incompatible with this library"
+	// omitting utls.HelloAndroid_11_OkHttp
 }
 
 func NewUTLSRoundTripper(name string, cfg *utls.Config, proxyURL *url.URL) (http.RoundTripper, error) {
@@ -310,8 +311,7 @@ func NewUTLSRoundTripper(name string, cfg *utls.Config, proxyURL *url.URL) (http
 
 	// This special-case RoundTripper is used for HTTP requests, which don't
 	// use uTLS but should use the specified proxy.
-	httpRT := &http.Transport{}
-	copyPublicFields(httpRT, httpRoundTripper)
+	httpRT := httpRoundTripper.Clone()
 	httpRT.Proxy = http.ProxyURL(proxyURL)
 
 	return &UTLSRoundTripper{

@@ -1,8 +1,10 @@
 // meek-client is the client transport plugin for the meek pluggable transport.
 //
 // Sample usage in torrc:
-// 	Bridge meek 0.0.2.0:1 url=https://forbidden.example/ front=allowed.example
-// 	ClientTransportPlugin meek exec ./meek-client
+//
+//	Bridge meek 0.0.2.0:1 url=https://forbidden.example/ front=allowed.example
+//	ClientTransportPlugin meek exec ./meek-client
+//
 // The transport ignores the bridge address 0.0.2.0:1 and instead connects to
 // the URL given by url=. When front= is given, the domain in the URL is
 // replaced by the front domain for the purpose of the DNS lookup, TCP
@@ -13,11 +15,15 @@
 // Bridge line) or through command line options. SOCKS args take precedence
 // per-connection over command line options. For example, this configuration
 // using SOCKS args:
-// 	Bridge meek 0.0.2.0:1 url=https://forbidden.example/ front=allowed.example
-// 	ClientTransportPlugin meek exec ./meek-client
+//
+//	Bridge meek 0.0.2.0:1 url=https://forbidden.example/ front=allowed.example
+//	ClientTransportPlugin meek exec ./meek-client
+//
 // is the same as this one using command line options:
-// 	Bridge meek 0.0.2.0:1
-// 	ClientTransportPlugin meek exec ./meek-client --url=https://forbidden.example/ --front=allowed.example
+//
+//	Bridge meek 0.0.2.0:1
+//	ClientTransportPlugin meek exec ./meek-client --url=https://forbidden.example/ --front=allowed.example
+//
 // The command-line configuration interface is for compatibility with tor 0.2.4
 // and older, which doesn't support parameters on Bridge lines.
 //
@@ -61,7 +67,7 @@ const (
 // We use this RoundTripper to make all our requests when neither --helper nor
 // utls is in effect. We use the defaults, except we take control of the Proxy
 // setting (notably, disabling the default ProxyFromEnvironment).
-var httpRoundTripper *http.Transport = http.DefaultTransport.(*http.Transport)
+var httpRoundTripper *http.Transport = http.DefaultTransport.(*http.Transport).Clone()
 
 // We use this RoundTripper when --helper is in effect.
 var helperRoundTripper = &HelperRoundTripper{
@@ -100,12 +106,12 @@ type RequestInfo struct {
 
 func (info *RequestInfo) Poll(ctx context.Context, out io.Reader) (in io.ReadCloser, err error) {
 	req, err := http.NewRequest("POST", info.URL.String(), out)
-	// Prevent Content-Type sniffing by net/http and middleboxes.
-	req.Header.Set("Content-Type", "application/octet-stream")
 	if err != nil {
 		return nil, err
 	}
 	req = req.WithContext(ctx)
+	// Prevent Content-Type sniffing by net/http and middleboxes.
+	req.Header.Set("Content-Type", "application/octet-stream")
 	if info.Host != "" {
 		req.Host = info.Host
 	}
